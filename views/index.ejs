@@ -1,0 +1,75 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Live deal Page</h1>
+    <p>Inspect the console to see socket io in action</p>
+    <button id="next">Send next deals</button>
+</body>
+</html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+<script>
+    let sentFirstRequest = false;
+    let lastDealInfo = null;
+    const socket = io('http://192.168.0.174:8000/live-deal',{
+        transports: ["websocket"],
+        path: "/gop",
+    });
+
+    // const socket = io('http://localhost:8000/live-deal',{
+    //     transports: ["polling","websocket"],
+    // });
+
+    socket.on("connect",() => {
+        console.log("socket connected")
+    })
+
+    console.log("socket intitialised")
+    
+    if(!sentFirstRequest){
+        socket.emit("send-live-deal", { skip: 0, limit: 4})
+    }
+    
+    document.getElementById("next").addEventListener("click", () => {
+        console.log("next fired")
+        socket.emit("send-live-deal", {
+            // skip: 4,
+            limit: 4,
+            dealId: lastDealInfo.dealId,
+            endDate: lastDealInfo.endDate
+        })
+    })
+    // setTimeout(() => {
+    //     socket.emit("send-live-deal", {
+    //         skip: 4,
+    //         limit: 4,
+    //         dealId: 85069,
+    //         endDate: "2022-04-01T04:54:02.000Z"
+    //     }
+    //     )
+    // }, 5000);
+    // console.log("emitted event send live deal")
+    
+    socket.on("live-deal", (deal) => {
+        console.log("received live deal", deal);
+        let { deals, totalDeals } = deal;
+        let lastIdx = deals.length -1;
+        lastDealInfo = deals[lastIdx];
+    })
+
+    socket.on("live-deal-added", (data) => {
+        console.log("live deal added",data)
+    })
+
+    socket.on("deals-expired",(data) => {
+        console.log("deals expired", data)
+    })
+
+    socket.on("deals-removed",(data) => {
+        console.log("deals-removed", data)
+    })
+</script>
